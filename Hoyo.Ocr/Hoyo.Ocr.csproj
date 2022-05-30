@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Hoyo.AutoDependencyInjectionModule" Version="1.0.3" />
+    <PackageReference Include="Hoyo.WebCore" Version="1.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />
   </ItemGroup>
 
