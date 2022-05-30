@@ -18,7 +18,7 @@ public class WeatherForecastController : ControllerBase
     [HttpGet(Name = "GetWeatherForecast")]
     public object? Get()
     {
-        var path = "G:\\GitHub\\OCRTest\\OCRTest\\bin\\Debug\\net6.0\\test1.jpg";
-        return hoyoOcr.DetectText(path, "back");
+        var path = "G:\\GitHub\\OCRTest\\OCRTest\\bin\\Debug\\net6.0\\test.jpg";
+        return hoyoOcr.DetectText(path, EOcrType.»ÀœÒ√Ê);
     }
 }

@@ -16,17 +16,24 @@ public class HoyoOcr : IHoyoOcr
         //建议程序全局初始化一次即可，不必每次识别都初始化，容易报错。
         engine = new(config, oCRParameter);
     }
-    public object? DetectText(string path, string type = "front")
+    public object? DetectText(string path, EOcrType type = EOcrType.人像面)
     {
-        if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(type)) throw new("身份证路径或正反面不能为空");
+        if (string.IsNullOrWhiteSpace(path)) throw new("身份证路径不能为空");
         var imagebyte = File.ReadAllBytes(path);
 #pragma warning disable CA1416 // 验证平台兼容性
         Bitmap bitmap = new(stream: new MemoryStream(imagebyte));
 #pragma warning restore CA1416 // 验证平台兼容性
         OCRResult ocrResult = engine!.DetectText(bitmap);
-        return ocrResult != null ? type == "front" ? GetFrontInfo(ocrResult.Text) : GetBackInfo(ocrResult.Text) : null;
+        return ocrResult is not null
+            ? type switch
+            {
+                EOcrType.人像面 => GetFrontInfo(ocrResult.Text),
+                EOcrType.国徽面 => GetBackInfo(ocrResult.Text),
+                _ => null,
+            }
+            : null;
     }
-    
+
     /// <summary>
     /// 获取身份证正面信息
     /// </summary>
@@ -66,7 +73,7 @@ public class HoyoOcr : IHoyoOcr
     private static string Address(string str)
     {
         var s = str.IndexOf("住址") + 2;
-        var l = str.IndexOf("公民身份号码") - s - 2;
+        var l = str.IndexOf("公民身份号码") - s;
         return str.Substring(s, l);
     }
 
@@ -78,7 +85,7 @@ public class HoyoOcr : IHoyoOcr
     private static ENation Nation(string str)
     {
         var s = str.IndexOf("民族") + 2;
-        var l = str.IndexOf("出生") - s - 2;
+        var l = str.IndexOf("出生") - s;
         var nation = str.Substring(s, l);
         return nation is "穿青人" or "其他" or "外国血统中国籍人士"
             ? (ENation)Enum.Parse(typeof(ENation), nation)
@@ -93,7 +100,7 @@ public class HoyoOcr : IHoyoOcr
     private static string Name(string str)
     {
         var s = str.IndexOf("姓名") + 2;
-        var l = str.IndexOf("性别") - s - 2;
+        var l = str.IndexOf("性别") - s;
         return str.Substring(s, l);
     }
 
