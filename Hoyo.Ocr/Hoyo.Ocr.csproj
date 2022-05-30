@@ -4,6 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,5 +14,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Hoyo.OcrServer\Hoyo.OcrServer.csproj" />
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy /e /r /y $(ProjectDir)inference $(ProjectDir)$(OutDir)inference " />
+  </Target>
 
 </Project>
