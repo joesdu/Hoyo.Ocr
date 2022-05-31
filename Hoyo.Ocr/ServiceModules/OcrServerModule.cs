@@ -7,6 +7,6 @@ public class OcrServerModule : AppModule
 {
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        context.Services.AddSingleton<IHoyoOcr, HoyoOcr>();
+        context.Services.AddSingleton<IHoyoIDCardOcr, HoyoIDCardOcr>();
     }
 }

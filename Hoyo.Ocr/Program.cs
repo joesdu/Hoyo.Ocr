@@ -1,30 +1,22 @@
 using Hoyo.AutoDependencyInjectionModule.Modules;
 using Hoyo.Ocr;
-using Hoyo.OcrServer;
-using Hoyo.WebCore;
-using System.Text.Json.Serialization;
+using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-
-builder.Services.AddControllers(c =>
+//娣诲姞SeriLog閰嶇疆
+_ = builder.Host.UseSerilog((webHost, logconfig) =>
 {
-    _ = c.Filters.Add<ActionExecuteFilter>();
-    _ = c.Filters.Add<ExceptionFilter>();
-}).AddJsonOptions(c =>
-{
-    c.JsonSerializerOptions.Converters.Add(new SystemTextJsonConvert.TimeOnlyJsonConverter());
-    c.JsonSerializerOptions.Converters.Add(new SystemTextJsonConvert.DateOnlyJsonConverter());
-    c.JsonSerializerOptions.Converters.Add(new SystemTextJsonConvert.TimeOnlyNullJsonConverter());
-    c.JsonSerializerOptions.Converters.Add(new SystemTextJsonConvert.DateOnlyNullJsonConverter());
-    c.JsonSerializerOptions.Converters.Add(new SystemTextJsonConvert.DateTimeConverter());
-    c.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-});
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
+    var configuration = webHost.Configuration.GetSection("Serilog");
+    var minilevel = string.IsNullOrWhiteSpace(configuration.Value) ? LogEventLevel.Information.ToString() : configuration["MinimumLevel:Default"]!;
+    //鏃ュ織浜嬩欢绾у埆
+    var logEventLevel = (LogEventLevel)Enum.Parse(typeof(LogEventLevel), minilevel);
+    _ = logconfig.ReadFrom.Configuration(webHost.Configuration.GetSection("Serilog")).Enrich.FromLogContext().WriteTo.Console(logEventLevel);
+    _ = logconfig.WriteTo.Map(le => MapData(le), (key, log) => log.Async(o => o.File(Path.Combine("logs", @$"{key.time:yyyyMMdd}{Path.DirectorySeparatorChar}{key.level.ToString().ToLower()}.log"), logEventLevel)));
+    static (DateTime time, LogEventLevel level) MapData(LogEvent @event) => (@event.Timestamp.LocalDateTime, @event.Level);
+}).ConfigureLogging((hostcontext, builder) => builder.ClearProviders().SetMinimumLevel(LogLevel.Information).AddConfiguration(hostcontext.Configuration.GetSection("Logging")).AddConsole().AddDebug());
 
-// 自动注入服务模块
+// 鑷姩娉ㄥ叆鏈嶅姟妯″潡
 builder.Services.AddApplication<AppWebModule>();
 
 var app = builder.Build();
@@ -32,12 +24,9 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment()) _ = app.UseDeveloperExceptionPage();
 
-app.UseHoyoResponseTime();
-app.UseAuthorization();
+// 娣诲姞鑷姩鍖栨敞鍏ョ殑涓�浜涗腑闂翠欢.
+app.InitializeApplication();
 
 app.MapControllers();
-
-// 添加自动化注入的一些中间件.
-app.InitializeApplication();
 
 app.Run();

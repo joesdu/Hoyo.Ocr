@@ -13,7 +13,6 @@ public class CorsModule : AppModule
 
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        Console.WriteLine("测试模块自动注入Cors");
         var config = context.Services.GetConfiguration();
         var allow = config["AllowedHosts"] ?? "*";
         _ = context.Services.AddCors(c => c.AddPolicy("AllowedHosts", s => s.WithOrigins(allow.Split(",")).AllowAnyMethod().AllowAnyHeader()));

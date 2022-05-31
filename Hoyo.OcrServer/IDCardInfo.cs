@@ -1,7 +1,7 @@
 ﻿using Hoyo.Enums;
 
 namespace Hoyo.OcrServer;
-public class FrontInfo
+public class PortraitInfo
 {
     public string Name { get; set; } = string.Empty;
     public EGender Gender { get; set; } = EGender.男;
@@ -11,9 +11,9 @@ public class FrontInfo
     public string IdNumber { get; set; } = string.Empty;
 }
 
-public class BackInfo
+public class EmblemInfo
 {
-    public string IssuingAuthority { get; set; } = string.Empty;
-    public DateOnly StartTime { get; set; }
-    public DateOnly EndTime { get; set; }
+    public string Agency { get; set; } = string.Empty;
+    public string ValidDateBegin { get; set; } = string.Empty;
+    public string ValidDateEnd { get; set; } = string.Empty;
 }
