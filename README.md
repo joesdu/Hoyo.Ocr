@@ -1,6 +1,6 @@
 # Hoyo.Ocr
 
-
+基于百度飞浆,用的大佬开源的库.
 使用前,请将如下两个目录中的压缩包解压到当前文件夹.
 
 Hoyo.Ocr\Hoyo.Ocr\inference
