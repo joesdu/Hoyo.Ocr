@@ -17,7 +17,8 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
         use_angle_cls = true,     //是否开启方向检测，用于检测识别180旋转
         det_db_score_mode = true, //是否使用多段线，即文字区域是用多段线还是用矩形，
         UnClipRatio = 1.6f,
-        MaxSideLen = 2000
+        MaxSideLen = 2000,
+        rec_img_h = 48
     };
 
     //private static readonly string root = $@"{Environment.CurrentDirectory}\inference";
