@@ -16,6 +16,7 @@ public class IDCardOcrController : ControllerBase
     }
 
     /// <summary>
+    /// 获取人像面信息
     /// </summary>
     /// <param name="img">上传图片</param>
     /// <returns></returns>
@@ -29,6 +30,7 @@ public class IDCardOcrController : ControllerBase
     }
 
     /// <summary>
+    /// 获取国徽面信息
     /// </summary>
     /// <param name="img"></param>
     /// <returns></returns>
@@ -45,7 +47,7 @@ public class IDCardOcrController : ControllerBase
 public class IDCardImg
 {
     /// <summary>
-    /// 上传文件(单或多文件)
+    /// 上传图片
     /// </summary>
     [Required]
     public IFormFile? File { get; set; }

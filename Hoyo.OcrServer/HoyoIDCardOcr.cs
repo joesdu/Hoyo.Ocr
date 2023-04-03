@@ -33,7 +33,7 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     private static readonly PaddleOCREngine engine = new(null, oCRParameter);
 
     /// <summary>
-    /// 获取身份证正面信息
+    /// 获取人像面信息
     /// </summary>
     /// <param name="base64">图片二进制数据</param>
     /// <returns></returns>
@@ -44,6 +44,11 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
         return GetPortraitInfo(cells);
     }
 
+    /// <summary>
+    /// 获取国徽面信息
+    /// </summary>
+    /// <param name="base64"></param>
+    /// <returns></returns>
     public EmblemInfo DetectEmblemInfo(string base64)
     {
         var ocrResult = engine.DetectTextBase64(base64);

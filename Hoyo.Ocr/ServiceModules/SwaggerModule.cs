@@ -30,7 +30,7 @@ public class SwaggerModule : AppModule
             {
                 Title = Title,
                 Version = Version,
-                Description = "Console.WriteLine(\"🐂🍺\")"
+                Description = "中国身份证OCR识别(无法保证能正确识别),Console.WriteLine(\"🐂🍺\")"
             });
             var controllers = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>();
             foreach (var ctrl in controllers)
