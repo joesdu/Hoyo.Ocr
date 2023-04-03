@@ -37,14 +37,14 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// </summary>
     /// <param name="base64">图片二进制数据</param>
     /// <returns></returns>
-    public PortraitInfo? DetectPortraitInfo(string base64)
+    public PortraitInfo DetectPortraitInfo(string base64)
     {
         var ocrResult = engine.DetectTextBase64(base64);
         var cells = ocrResult.TextBlocks.FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.85f);
         return GetPortraitInfo(cells);
     }
 
-    public EmblemInfo? DetectEmblemInfo(string base64)
+    public EmblemInfo DetectEmblemInfo(string base64)
     {
         var ocrResult = engine.DetectTextBase64(base64);
         var cells = ocrResult.TextBlocks.FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.85f);
@@ -209,15 +209,13 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
         foreach (var item in cells)
         {
             if (item.Text.Contains("民族")) begin = true;
-            if (begin & !string.IsNullOrWhiteSpace(item.Text))
-            {
-                var s = item.Text.IndexOf("民族", StringComparison.Ordinal) + 2;
-                var nation = item.Text[s..];
-                result = nation is "穿青人" or "其他" or "外国血统中国籍人士"
-                             ? (ENation)Enum.Parse(typeof(ENation), nation)
-                             : (ENation)Enum.Parse(typeof(ENation), nation + "族");
-                break;
-            }
+            if (!(begin & !string.IsNullOrWhiteSpace(item.Text))) continue;
+            var s = item.Text.IndexOf("民族", StringComparison.Ordinal) + 2;
+            var nation = item.Text[s..];
+            result = nation is "穿青人" or "其他" or "外国血统中国籍人士"
+                         ? (ENation)Enum.Parse(typeof(ENation), nation)
+                         : (ENation)Enum.Parse(typeof(ENation), nation + "族");
+            break;
         }
         return result;
     }

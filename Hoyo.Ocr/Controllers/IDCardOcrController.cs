@@ -22,8 +22,8 @@ public class IDCardOcrController : ControllerBase
     [HttpPost("Portrait")]
     public async Task<PortraitInfo?> Portrait([FromForm] IDCardImg img)
     {
-        var stream = img.File?.OpenReadStream();
-        var bytes = await stream!.ToArrayAsync();
+        var stream = img.File?.OpenReadStream()!;
+        var bytes = await stream.ToArrayAsync();
         var base64 = Convert.ToBase64String(bytes);
         return _ocr.DetectPortraitInfo(base64);
     }
@@ -36,7 +36,7 @@ public class IDCardOcrController : ControllerBase
     public async Task<EmblemInfo?> Emblem([FromForm] IDCardImg img)
     {
         var stream = img.File?.OpenReadStream()!;
-        var bytes = await stream!.ToArrayAsync();
+        var bytes = await stream.ToArrayAsync();
         var base64 = Convert.ToBase64String(bytes);
         return _ocr.DetectEmblemInfo(base64);
     }
