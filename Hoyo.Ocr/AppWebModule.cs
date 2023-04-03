@@ -1,19 +1,23 @@
-﻿using Hoyo.AutoDependencyInjectionModule.DependencyInjectionModule;
-using Hoyo.AutoDependencyInjectionModule.Modules;
-using Hoyo.WebCore;
+﻿using EasilyNET.AutoDependencyInjection.Attributes;
+using EasilyNET.AutoDependencyInjection.Contexts;
+using EasilyNET.AutoDependencyInjection.Extensions;
+using EasilyNET.AutoDependencyInjection.Modules;
+using EasilyNET.WebCore.Filters;
+using EasilyNET.WebCore.JsonConverters;
+using EasilyNET.WebCore.Middleware;
 using System.Text.Json.Serialization;
+
+// ReSharper disable ClassNeverInstantiated.Global
 
 namespace Hoyo.Ocr;
 
 /**
  * 要实现自动注入,一定要在这个地方添加
  */
-[DependsOn(
-    typeof(DependencyAppModule),
+[DependsOn(typeof(DependencyAppModule),
     typeof(CorsModule),
     typeof(SwaggerModule),
-    typeof(OcrServerModule)
-)]
+    typeof(OcrServerModule))]
 public class AppWebModule : AppModule
 {
     public override void ConfigureServices(ConfigureServicesContext context)
@@ -24,11 +28,11 @@ public class AppWebModule : AppModule
             _ = c.Filters.Add<ExceptionFilter>();
         }).AddJsonOptions(c =>
         {
-            c.JsonSerializerOptions.Converters.Add(new SystemTextJsonConvert.TimeOnlyJsonConverter());
-            c.JsonSerializerOptions.Converters.Add(new SystemTextJsonConvert.DateOnlyJsonConverter());
-            c.JsonSerializerOptions.Converters.Add(new SystemTextJsonConvert.TimeOnlyNullJsonConverter());
-            c.JsonSerializerOptions.Converters.Add(new SystemTextJsonConvert.DateOnlyNullJsonConverter());
-            c.JsonSerializerOptions.Converters.Add(new SystemTextJsonConvert.DateTimeConverter());
+            c.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
+            c.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+            c.JsonSerializerOptions.Converters.Add(new TimeOnlyNullJsonConverter());
+            c.JsonSerializerOptions.Converters.Add(new DateOnlyNullJsonConverter());
+            c.JsonSerializerOptions.Converters.Add(new DateTimeConverter());
             c.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -39,10 +43,8 @@ public class AppWebModule : AppModule
     public override void ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationBuilder();
-
-        app.UseHoyoResponseTime();
+        app.UseEasilyNETResponseTime();
         app.UseAuthorization();
-
         base.ApplicationInitialization(context);
     }
 }

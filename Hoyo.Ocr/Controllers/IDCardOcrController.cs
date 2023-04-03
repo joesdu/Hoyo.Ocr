@@ -1,37 +1,44 @@
+using EasilyNET.Core.Misc;
 using Hoyo.OcrServer;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
 namespace Hoyo.Ocr.Controllers;
+
 [ApiController, Route("[controller]")]
 public class IDCardOcrController : ControllerBase
 {
-    private readonly IHoyoIDCardOcr hoyoOcr;
-    public IDCardOcrController(IHoyoIDCardOcr ihoyoOcr) => hoyoOcr = ihoyoOcr;
+    private readonly IHoyoIDCardOcr _ocr;
 
+    public IDCardOcrController(IHoyoIDCardOcr i_ocr)
+    {
+        _ocr = i_ocr;
+    }
+
+    /// <summary>
+    /// </summary>
+    /// <param name="img">上传图片</param>
+    /// <returns></returns>
     [HttpPost("Portrait")]
-    public PortraitInfo? Portrait([FromForm] IDCardImg cardimg)
+    public async Task<PortraitInfo?> Portrait([FromForm] IDCardImg img)
     {
-        var stream = cardimg.File?.OpenReadStream()!;
-        var bytes = StreamToBytes(stream);
-        return hoyoOcr.DetectPortraitInfo(bytes);
+        var stream = img.File?.OpenReadStream();
+        var bytes = await stream!.ToArrayAsync();
+        var base64 = Convert.ToBase64String(bytes);
+        return _ocr.DetectPortraitInfo(base64);
     }
 
+    /// <summary>
+    /// </summary>
+    /// <param name="img"></param>
+    /// <returns></returns>
     [HttpPost("Emblem")]
-    public EmblemInfo? Emblem([FromForm] IDCardImg cardimg)
+    public async Task<EmblemInfo?> Emblem([FromForm] IDCardImg img)
     {
-        var stream = cardimg.File?.OpenReadStream()!;
-        var bytes = StreamToBytes(stream);
-        return hoyoOcr.DetectEmblemInfo(bytes);
-    }
-
-    private static byte[] StreamToBytes(Stream stream)
-    {
-        var bytes = new byte[stream.Length];
-        _ = stream.Read(bytes, 0, bytes.Length);
-        // 设置当前流的位置为流的开始 
-        _ = stream.Seek(0, SeekOrigin.Begin);
-        return bytes;
+        var stream = img.File?.OpenReadStream()!;
+        var bytes = await stream!.ToArrayAsync();
+        var base64 = Convert.ToBase64String(bytes);
+        return _ocr.DetectEmblemInfo(base64);
     }
 }
 
@@ -41,5 +48,5 @@ public class IDCardImg
     /// 上传文件(单或多文件)
     /// </summary>
     [Required]
-    public IFormFile? File { get; set; } = null;
+    public IFormFile? File { get; set; }
 }

@@ -1,5 +1,6 @@
-﻿using Hoyo.AutoDependencyInjectionModule.Extensions;
-using Hoyo.AutoDependencyInjectionModule.Modules;
+﻿using EasilyNET.AutoDependencyInjection.Contexts;
+using EasilyNET.AutoDependencyInjection.Extensions;
+using EasilyNET.AutoDependencyInjection.Modules;
 
 namespace Hoyo.Ocr;
 

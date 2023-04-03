@@ -1,101 +1,111 @@
-﻿using Hoyo.Enums;
-using Hoyo.Extensions;
-using Hoyo.Tools;
+﻿using EasilyNET.Core.Enums;
+using EasilyNET.Core.IdCard;
+using EasilyNET.Core.Misc;
 using PaddleOCRSharp;
-using System.Drawing;
 using System.Text;
 
 namespace Hoyo.OcrServer;
 
 public class HoyoIDCardOcr : IHoyoIDCardOcr
 {
-    private static readonly OCRParameter oCRParameter = new();
-    private static PaddleOCREngine? engine;
-    private static PaddleOCREngine? serverEngine;
-    public HoyoIDCardOcr()
+    //OCR参数
+    private static readonly OCRParameter oCRParameter = new()
     {
-        var modelPathroot = $@"{Environment.CurrentDirectory}\inferenceserver";
-        //服务器中英文模型
-        OCRModelConfig config = new()
-        {
-            det_infer = $@"{modelPathroot}\ch_ppocr_server_v2.0_det_infer",
-            cls_infer = $@"{modelPathroot}\ch_ppocr_mobile_v2.0_cls_infer",
-            rec_infer = $@"{modelPathroot}\ch_ppocr_server_v2.0_rec_infer",
-            keys = $@"{modelPathroot}\ppocr_keys.txt"
-        };
-        //建议程序全局初始化一次即可，不必每次识别都初始化，容易报错。
-        engine = new(null, oCRParameter);
-        serverEngine = new(config, oCRParameter);
-    }
-    public PortraitInfo? DetectPortraitInfo(byte[] imagebyte)
-    {
-#pragma warning disable CA1416 // 验证平台兼容性
-        Bitmap bitmap = new(stream: new MemoryStream(imagebyte));
-#pragma warning restore CA1416 // 验证平台兼容性
-        var ocrResult = engine!.DetectStructure(bitmap);
-        var ocrServer = serverEngine!.DetectStructure(bitmap);
-        return ocrResult is null || ocrServer is null ? null : GetPortraitInfo(ocrResult, ocrServer);
-    }
+        numThread = 8,            //预测并发线程数
+        Enable_mkldnn = true,     //web部署该值建议设置为0,否则出错，内存如果使用很大，建议该值也设置为0.
+        cls = true,               //是否执行文字方向分类；默认false
+        use_angle_cls = true,     //是否开启方向检测，用于检测识别180旋转
+        det_db_score_mode = true, //是否使用多段线，即文字区域是用多段线还是用矩形，
+        UnClipRatio = 1.6f,
+        MaxSideLen = 2000
+    };
 
-    public EmblemInfo? DetectEmblemInfo(byte[] imagebyte)
-    {
-#pragma warning disable CA1416 // 验证平台兼容性
-        Bitmap bitmap = new(stream: new MemoryStream(imagebyte));
-#pragma warning restore CA1416 // 验证平台兼容性
-        var ocrService = serverEngine!.DetectStructure(bitmap);
-        return ocrService is null ? null : GetEmblemInfo(ocrService);
-    }
+    //private static readonly string root = $@"{Environment.CurrentDirectory}\inference";
+
+    //private static readonly PaddleOCREngine engine = new(new()
+    //{
+    //    det_infer = $@"{root}\ch_PP-OCRv3_det_infer",
+    //    cls_infer = $@"{root}\ch_ppocr_mobile_v2.0_cls_infer",
+    //    rec_infer = $@"{root}\ch_PP-OCRv3_rec_infer",
+    //    keys = $@"{root}\ppocr_keys.txt"
+    //}, oCRParameter);
+
+    private static readonly PaddleOCREngine engine = new(null, oCRParameter);
 
     /// <summary>
     /// 获取身份证正面信息
     /// </summary>
-    /// <param name="str"></param>
+    /// <param name="base64">图片二进制数据</param>
     /// <returns></returns>
-    private static PortraitInfo GetPortraitInfo(OCRStructureResult results, OCRStructureResult serviceresults)
+    public PortraitInfo? DetectPortraitInfo(string base64)
     {
-        var cells = results.Cells.FindAll(c => !string.IsNullOrWhiteSpace(c.Text));
-        var servicecells = serviceresults.Cells.FindAll(c => !string.IsNullOrWhiteSpace(c.Text));
+        var ocrResult = engine.DetectTextBase64(base64);
+        var cells = ocrResult.TextBlocks.FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.85f);
+        return GetPortraitInfo(cells);
+    }
+
+    public EmblemInfo? DetectEmblemInfo(string base64)
+    {
+        var ocrResult = engine.DetectTextBase64(base64);
+        var cells = ocrResult.TextBlocks.FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.85f);
+        return GetEmblemInfo(cells);
+    }
+
+    /// <summary>
+    /// 获取人像面信息
+    /// </summary>
+    /// <param name="cells"></param>
+    /// <returns></returns>
+    private static PortraitInfo GetPortraitInfo(List<TextBlock> cells)
+    {
+        var sb = new StringBuilder();
+        foreach (var cell in cells)
+        {
+            sb.Append(cell.Text);
+        }
+        Console.WriteLine(sb.ToString());
         var idno = Idno(cells);
+        idno.CalculateBirthday(out DateOnly birthday);
         return new()
         {
-            Name = Name(servicecells),
+            Name = Name(cells),
             Gender = idno.CalculateGender(),
-            Nation = Nation(servicecells),
-            Birthday = idno.CalculateBirthday(),
-            Address = Address(servicecells, idno),
+            Nation = Nation(cells),
+            Birthday = birthday,
+            Address = Address(cells, idno),
             IdNumber = idno
         };
     }
+
     /// <summary>
-    /// 
+    /// 获取国徽面数据
     /// </summary>
-    /// <param name="str"></param>
+    /// <param name="cells"></param>
     /// <returns></returns>
-    private static EmblemInfo GetEmblemInfo(OCRStructureResult results)
-    {
-        var cells = results.Cells.FindAll(c => !string.IsNullOrWhiteSpace(c.Text));
-        return new()
+    private static EmblemInfo GetEmblemInfo(List<TextBlock> cells) =>
+        new()
         {
             Agency = Agency(cells),
             ValidDateBegin = StartTime(cells),
             ValidDateEnd = EndTime(cells)
         };
-    }
 
     #region 国徽面数据提取
+
     /// <summary>
-    /// 获取有效期开始时间
+    /// 获取签发机关
     /// </summary>
-    /// <param name="str"></param>
+    /// <param name="cells"></param>
     /// <returns></returns>
-    private static string Agency(List<StructureCells> cells)
+    private static string Agency(List<TextBlock> cells)
     {
         var begin = false;
         var sb = new StringBuilder();
         foreach (var item in cells)
         {
-            if (item.Text.Contains("签发机关"))
+            if (item.Text.Contains("签发机关") && item.Text.Length > "签发机关".Length)
             {
+                sb.Append(item.Text["签发机关".Length..]);
                 begin = true;
                 continue;
             }
@@ -104,12 +114,13 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
         }
         return sb.ToString();
     }
+
     /// <summary>
     /// 获取有效期开始时间
     /// </summary>
-    /// <param name="str"></param>
+    /// <param name="cells"></param>
     /// <returns></returns>
-    private static string StartTime(List<StructureCells> cells)
+    private static string StartTime(List<TextBlock> cells)
     {
         var begin = false;
         var start = "";
@@ -117,23 +128,22 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
         {
             if (item.Text.Contains("有效期")) begin = true;
             var temp = item.Text.Replace(".", "");
-            var s = temp.IndexOf("-") - 8;
+            var s = temp.IndexOf("-", StringComparison.Ordinal) - 8;
             if (s < 0) continue;
-            if (begin & !string.IsNullOrWhiteSpace(item.Text))
-            {
-                start = temp.Substring(s, 8);
-                if (start.IsNumber()) start = start.ToDateTime(true)?.ToString("yyyy-MM-dd")!;
-                break;
-            }
+            if (!(begin & !string.IsNullOrWhiteSpace(item.Text))) continue;
+            start = temp.Substring(s, 8);
+            if (start.IsNumber()) start = start.ToDateTime(true)?.ToString("yyyy-MM-dd")!;
+            break;
         }
         return start;
     }
+
     /// <summary>
     /// 获取有效期结束时间
     /// </summary>
-    /// <param name="str"></param>
+    /// <param name="cells"></param>
     /// <returns></returns>
-    private static string EndTime(List<StructureCells> cells)
+    private static string EndTime(List<TextBlock> cells)
     {
         var begin = false;
         var end = "";
@@ -141,31 +151,35 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
         {
             if (item.Text.Contains("有效期")) begin = true;
             var temp = item.Text.Replace(".", "");
-            var s = temp.IndexOf("-");
+            var s = temp.IndexOf("-", StringComparison.Ordinal);
             if (s < 0) continue;
-            if (begin & !string.IsNullOrWhiteSpace(item.Text))
+            if (!(begin & !string.IsNullOrWhiteSpace(item.Text))) continue;
+            end = temp[(s + 1)..];
+            if (end.StartsWith("长期"))
             {
-                end = temp[(s + 1)..];
-                if (end.StartsWith("长期")) end = "长期";
-                else if (end.IsNumber())
-                {
-                    end = end[..8];
-                    return end.ToDateTime(true)?.ToString("yyyy-MM-dd")!;
-                }
-                break;
+                end = "长期";
             }
+            else if (end.IsNumber())
+            {
+                end = end[..8];
+                return end.ToDateTime(true)?.ToString("yyyy-MM-dd")!;
+            }
+            break;
         }
         return end;
     }
+
     #endregion
 
     #region 人像面数据提取
+
     /// <summary>
     /// 获取地址
     /// </summary>
-    /// <param name="str"></param>
+    /// <param name="cells"></param>
+    /// <param name="idno"></param>
     /// <returns></returns>
-    private static string Address(List<StructureCells> cells, string idno)
+    private static string Address(List<TextBlock> cells, string idno)
     {
         var begin = false;
         var sb = new StringBuilder();
@@ -175,18 +189,20 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
             if (!string.IsNullOrWhiteSpace(item.Text) && (item.Text.Contains("公民身份号码") || idno.Contains(item.Text))) break;
             if (begin && !string.IsNullOrWhiteSpace(item.Text)) _ = sb.Append(item.Text);
         }
-        var address = sb.ToString()[2..].ReverseByPointer();
-        var index = address.IndexOf("号");
-        address = address[index..].ReverseByPointer();
+        var address = sb.ToString()[2..];
+        address.Reverse();
+        var index = address.IndexOf("号", StringComparison.Ordinal);
+        address = address[index..];
+        address.Reverse();
         return address;
     }
 
     /// <summary>
     /// 获取名族
     /// </summary>
-    /// <param name="str"></param>
+    /// <param name="cells"></param>
     /// <returns></returns>
-    private static ENation Nation(List<StructureCells> cells)
+    private static ENation Nation(List<TextBlock> cells)
     {
         var begin = false;
         var result = ENation.其他;
@@ -195,11 +211,11 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
             if (item.Text.Contains("民族")) begin = true;
             if (begin & !string.IsNullOrWhiteSpace(item.Text))
             {
-                var s = item.Text.IndexOf("民族") + 2;
+                var s = item.Text.IndexOf("民族", StringComparison.Ordinal) + 2;
                 var nation = item.Text[s..];
                 result = nation is "穿青人" or "其他" or "外国血统中国籍人士"
-                    ? (ENation)Enum.Parse(typeof(ENation), nation)
-                    : (ENation)Enum.Parse(typeof(ENation), nation + "族");
+                             ? (ENation)Enum.Parse(typeof(ENation), nation)
+                             : (ENation)Enum.Parse(typeof(ENation), nation + "族");
                 break;
             }
         }
@@ -209,9 +225,9 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// <summary>
     /// 获取姓名
     /// </summary>
-    /// <param name="str"></param>
+    /// <param name="cells"></param>
     /// <returns></returns>
-    private static string Name(List<StructureCells> cells)
+    private static string Name(List<TextBlock> cells)
     {
         var begin = false;
         foreach (var item in cells)
@@ -225,24 +241,26 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// <summary>
     /// 获取身份证号码
     /// </summary>
-    /// <param name="str"></param>
+    /// <param name="cells"></param>
     /// <returns></returns>
-    private static string Idno(List<StructureCells> cells)
+    private static string Idno(List<TextBlock> cells)
     {
         var idno = "";
-        var begin = false;
         foreach (var item in cells)
         {
-            if (item.Text.Contains("公民身份号码"))
+            // 当这行字符串包含身份证号,并且长度超过这几个字,那么表示数据在同一行
+            if (item.Text.Contains("公民身份号码") && item.Text.Length > "公民身份号码".Length)
             {
-                begin = true;
-                continue;
+                idno = item.Text["公民身份号码".Length..];
             }
-            if (begin & !string.IsNullOrWhiteSpace(item.Text)) idno = item.Text;
+            if (item.Text.Length is 15 or 18)
+            {
+                idno = item.Text;
+            }
         }
-        if (!idno.IsNumber()) throw new("不合法的身份证号码");
         _ = idno.CheckIDCard();
         return idno;
     }
+
     #endregion
 }

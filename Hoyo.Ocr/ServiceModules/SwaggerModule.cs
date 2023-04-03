@@ -1,8 +1,11 @@
-﻿using Hoyo.AutoDependencyInjectionModule.Extensions;
-using Hoyo.AutoDependencyInjectionModule.Modules;
-using Microsoft.AspNetCore.Authorization;
+﻿using EasilyNET.AutoDependencyInjection.Contexts;
+using EasilyNET.AutoDependencyInjection.Extensions;
+using EasilyNET.AutoDependencyInjection.Modules;
+using EasilyNET.Core.Misc;
+using EasilyNET.WebCore.Attributes;
+using EasilyNET.WebCore.SwaggerFilters;
 using Microsoft.OpenApi.Models;
-using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Reflection;
 
 namespace Hoyo.Ocr;
 
@@ -11,81 +14,83 @@ public class SwaggerModule : AppModule
     /**
      * https://github.com/domaindrivendev/Swashbuckle.AspNetCore
      */
-    private string Title { get; set; } = string.Empty;
-    private string Version { get; set; } = string.Empty;
+    private const string Name = $"{Title}-{Version}";
+
+    private const string Title = "Ocr.Api";
+    private const string Version = "v1";
+    private static readonly Dictionary<string, string> docsDic = new();
+    private static readonly Dictionary<string, string> endPointDic = new();
 
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        var config = context.Services.GetConfiguration();
-        Title = config["Swagger:Title"] ?? "Miracle.SwaggerModule";
-        Version = config["Swagger:Version"] ?? "v1.0";
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         _ = context.Services.AddSwaggerGen(c =>
         {
-            c.SwaggerDoc(Version, new OpenApiInfo
+            c.SwaggerDoc(Name, new()
             {
                 Title = Title,
-                Version = Version
+                Version = Version,
+                Description = "Console.WriteLine(\"🐂🍺\")"
             });
-            //var files = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "*.xml"));
-            //foreach (var fiel in files)
-            //{
-            //    c.IncludeXmlComments(fiel, true);
-            //}
-            // 一定要返回true！
-            c.DocInclusionPredicate((docName, description) => true);
-            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            var controllers = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>();
+            foreach (var ctrl in controllers)
+            {
+                var attr = ctrl.GetCustomAttribute<ApiGroupAttribute>();
+                if (attr is null) continue;
+                if (docsDic.ContainsKey(attr.Name)) continue;
+                _ = docsDic.TryAdd(attr.Name, attr.Description);
+                c.SwaggerDoc(attr.Name, new()
+                {
+                    Title = attr.Title,
+                    Version = attr.Version,
+                    Description = attr.Description
+                });
+            }
+            var files = Directory.GetFiles(AppContext.BaseDirectory, "*.xml");
+            foreach (var file in files)
+            {
+                c.IncludeXmlComments(file, true);
+            }
+            c.DocInclusionPredicate((docName, apiDescription) =>
+            {
+                //反射拿到值
+                var actionList = apiDescription.ActionDescriptor.EndpointMetadata.Where(x => x is ApiGroupAttribute).ToList();
+                if (actionList.Count != 0)
+                {
+                    return actionList.FirstOrDefault() is ApiGroupAttribute attr && attr.Name == docName;
+                }
+                var not = apiDescription.ActionDescriptor.EndpointMetadata.Where(x => x is not ApiGroupAttribute).ToList();
+                return not.Count != 0 && docName == Name;
+                //判断是否包含这个分组
+            });
+            c.AddSecurityDefinition("Bearer", new()
             {
                 Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
                 Name = "Authorization",
                 In = ParameterLocation.Header,
-                Type = SecuritySchemeType.ApiKey,
-                Scheme = "Bearer",
+                Type = SecuritySchemeType.ApiKey
             });
-            // 这里使用预定义的过滤器,避免给所有接口均加锁.
-            c.OperationFilter<SwaggerOperationFilter>();
+            c.OperationFilter<SwaggerAuthorizeFilter>();
+            c.DocumentFilter<SwaggerHiddenApiFilter>();
+            c.SchemaFilter<SwaggerSchemaFilter>();
         });
     }
 
     public override void ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationBuilder();
-        _ = app.UseSwagger().UseSwaggerUI(c => c.SwaggerEndpoint($"/swagger/{Version}/swagger.json", $"{Title} {Version}"));
-    }
-}
-
-public class SwaggerOperationFilter : IOperationFilter
-{
-    public void Apply(OpenApiOperation operation, OperationFilterContext context)
-    {
-        var authAttributes = context.MethodInfo.DeclaringType?.GetCustomAttributes(true)
-            .Union(context.MethodInfo.GetCustomAttributes(true))
-            .OfType<AuthorizeAttribute>();
-
-        if (!authAttributes!.Any()) return;
-        var securityRequirement = new OpenApiSecurityRequirement()
+        _ = app.UseSwagger().UseSwaggerUI(c =>
         {
+            c.SwaggerEndpoint($"/swagger/{Name}/swagger.json", $"{Title} {Version}");
+            var controllers = AssemblyHelper.FindTypesByAttribute<ApiGroupAttribute>();
+            foreach (var ctrl in controllers)
             {
-                // Put here you own security scheme, this one is an example
-                new OpenApiSecurityScheme
-                {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    },
-                    Scheme = "oauth2",
-                    Name = "Bearer",
-                    In = ParameterLocation.Header,
-                },
-                new List<string>()
+                var attr = ctrl.GetCustomAttribute<ApiGroupAttribute>();
+                if (attr is null) continue;
+                if (endPointDic.ContainsKey(attr.Name)) continue;
+                _ = endPointDic.TryAdd(attr.Name, attr.Description);
+                c.SwaggerEndpoint($"/swagger/{attr.Name}/swagger.json", $"{attr.Title} {attr.Version}");
             }
-        };
-        operation.Security = new List<OpenApiSecurityRequirement> { securityRequirement };
-        operation.Responses.Add("401", new OpenApiResponse { Description = "Unauthorized" });
+        });
     }
 }
-//startup.ConfigureServices中,会导致所有接口加锁图标
-//options.AddSecurityRequirement(new OpenApiSecurityRequirement {
-//    {new OpenApiSecurityScheme{ Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme,Id = "Bearer" }}, new string[] { } }
-//});
