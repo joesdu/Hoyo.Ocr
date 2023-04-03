@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="EasilyNET.Core" Version="1.3.6.3" />
-    <PackageReference Include="PaddleOCRSharp" Version="2.3.0" />
+    <PackageReference Include="PaddleOCRSharp" Version="3.0.0" />
   </ItemGroup>
 
 </Project>

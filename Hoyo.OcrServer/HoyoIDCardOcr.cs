@@ -11,13 +11,13 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     //OCR参数
     private static readonly OCRParameter oCRParameter = new()
     {
-        numThread = 8,            //预测并发线程数
-        Enable_mkldnn = true,     //web部署该值建议设置为0,否则出错，内存如果使用很大，建议该值也设置为0.
-        cls = true,               //是否执行文字方向分类；默认false
-        use_angle_cls = true,     //是否开启方向检测，用于检测识别180旋转
-        det_db_score_mode = true, //是否使用多段线，即文字区域是用多段线还是用矩形，
-        UnClipRatio = 1.6f,
-        MaxSideLen = 2000,
+        cpu_math_library_num_threads = 10,
+        enable_mkldnn = true,
+        cls = true,
+        use_angle_cls = true,
+        det_db_score_mode = true,
+        det_db_unclip_ratio = 1.6f,
+        max_side_len = 1000,
         rec_img_h = 48
     };
 
