@@ -11,14 +11,9 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     //OCR参数
     private static readonly OCRParameter oCRParameter = new()
     {
-        cpu_math_library_num_threads = 10,
-        enable_mkldnn = true,
         cls = true,
         use_angle_cls = true,
-        det_db_score_mode = true,
-        det_db_unclip_ratio = 1.6f,
-        max_side_len = 1000,
-        rec_img_h = 48
+        det_db_score_mode = true
     };
 
     //private static readonly string root = $@"{Environment.CurrentDirectory}\inference";
@@ -41,7 +36,7 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     public PortraitInfo DetectPortraitInfo(string base64)
     {
         var ocrResult = engine.DetectTextBase64(base64);
-        var cells = ocrResult.TextBlocks.FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.85f);
+        var cells = ocrResult.TextBlocks.FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.80f);
         return GetPortraitInfo(cells);
     }
 
@@ -53,7 +48,7 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     public EmblemInfo DetectEmblemInfo(string base64)
     {
         var ocrResult = engine.DetectTextBase64(base64);
-        var cells = ocrResult.TextBlocks.FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.85f);
+        var cells = ocrResult.TextBlocks.FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.80f);
         return GetEmblemInfo(cells);
     }
 
