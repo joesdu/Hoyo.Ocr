@@ -3,6 +3,7 @@ using EasilyNET.Core.IdCard;
 using EasilyNET.Core.Misc;
 using PaddleOCRSharp;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Hoyo.OcrServer;
 
@@ -33,23 +34,29 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// </summary>
     /// <param name="base64">图片二进制数据</param>
     /// <returns></returns>
-    public PortraitInfo DetectPortraitInfo(string base64)
-    {
-        var ocrResult = engine.DetectTextBase64(base64);
-        var cells = ocrResult.TextBlocks.FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.80f);
-        return GetPortraitInfo(cells);
-    }
+    public PortraitInfo DetectPortraitInfo(string base64) => GetPortraitInfo(GetDetectResult(base64));
 
     /// <summary>
     /// 获取国徽面信息
     /// </summary>
     /// <param name="base64"></param>
     /// <returns></returns>
-    public EmblemInfo DetectEmblemInfo(string base64)
+    public EmblemInfo DetectEmblemInfo(string base64) => GetEmblemInfo(GetDetectResult(base64));
+
+    /// <summary>
+    /// 解析数据
+    /// </summary>
+    /// <param name="base64"></param>
+    /// <returns></returns>
+    private static List<TextBlock> GetDetectResult(string base64)
     {
         var ocrResult = engine.DetectTextBase64(base64);
         var cells = ocrResult.TextBlocks.FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.80f);
-        return GetEmblemInfo(cells);
+        foreach (var cell in cells)
+        {
+            cell.Text = Regex.Replace(cell.Text, @"\s", string.Empty);
+        }
+        return cells;
     }
 
     /// <summary>
