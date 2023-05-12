@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EasilyNET.Core" Version="1.5.2" />
+    <PackageReference Include="EasilyNET.Core" Version="1.5.4" />
     <PackageReference Include="PaddleOCRSharp" Version="3.0.0" />
   </ItemGroup>
 
