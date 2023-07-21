@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EasilyNET.AutoDependencyInjection" Version="1.6.6" />
+    <PackageReference Include="EasilyNET.AutoDependencyInjection" Version="1.6.7" />
     <PackageReference Include="EasilyNET.WebCore" Version="1.6.6" />
     <PackageReference Include="EasilyNET.WebCore.Swagger" Version="1.6.6" />
     <PackageReference Include="Serilog.AspNetCore" Version="7.0.0" />
