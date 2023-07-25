@@ -3,7 +3,6 @@ using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.WebCore.Filters;
 using EasilyNET.WebCore.JsonConverters;
-using EasilyNET.WebCore.Middleware;
 using System.Text.Json.Serialization;
 
 // ReSharper disable ClassNeverInstantiated.Global
