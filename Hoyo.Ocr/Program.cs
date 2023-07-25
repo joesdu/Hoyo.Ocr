@@ -1,4 +1,3 @@
-using EasilyNET.AutoDependencyInjection.Extensions;
 using Hoyo.Ocr;
 using Serilog;
 using Serilog.Events;
@@ -16,6 +15,7 @@ _ = builder.Host.UseSerilog((hbc, lc) =>
     _ = lc.WriteTo.Async(wt => wt.Console());
     _ = lc.WriteTo.Debug();
     _ = lc.WriteTo.Map(MapData, (key, log) => log.Async(o => o.File(Path.Combine("logs", @$"{key.time:yyyyMMdd}{Path.DirectorySeparatorChar}{key.level.ToString().ToLower()}.log"), logLevel)));
+    return;
     static (DateTime time, LogEventLevel level) MapData(LogEvent @event) => (@event.Timestamp.LocalDateTime, @event.Level);
 });
 

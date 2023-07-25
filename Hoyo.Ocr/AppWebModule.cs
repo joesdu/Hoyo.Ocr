@@ -1,6 +1,5 @@
 ﻿using EasilyNET.AutoDependencyInjection.Attributes;
 using EasilyNET.AutoDependencyInjection.Contexts;
-using EasilyNET.AutoDependencyInjection.Extensions;
 using EasilyNET.AutoDependencyInjection.Modules;
 using EasilyNET.WebCore.Filters;
 using EasilyNET.WebCore.JsonConverters;
@@ -43,7 +42,7 @@ public class AppWebModule : AppModule
     public override void ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationBuilder();
-        app.UseEasilyNETResponseTime();
+        app.UseResponseTime();
         app.UseAuthorization();
         base.ApplicationInitialization(context);
     }
