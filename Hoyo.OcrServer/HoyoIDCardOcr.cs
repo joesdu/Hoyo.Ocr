@@ -1,16 +1,19 @@
 ﻿using EasilyNET.Core.Enums;
 using EasilyNET.Core.IdCard;
 using EasilyNET.Core.Misc;
+using Microsoft.Extensions.Logging;
 using OpenCvSharp;
 using Sdcb.PaddleInference;
 using Sdcb.PaddleOCR;
 using Sdcb.PaddleOCR.Models.Local;
 using System.Text;
 
+// ReSharper disable SuggestBaseTypeForParameterInConstructor
+
 namespace Hoyo.OcrServer;
 
 /// <inheritdoc />
-public sealed class HoyoIDCardOcr : IHoyoIDCardOcr
+public sealed class HoyoIDCardOcr(ILogger<HoyoIDCardOcr> logger) : IHoyoIDCardOcr
 {
     /// <inheritdoc />
     public PortraitInfo DetectPortraitInfo(byte[] img) => GetPortraitInfo(GetDetectResult(img));
@@ -23,7 +26,7 @@ public sealed class HoyoIDCardOcr : IHoyoIDCardOcr
     /// </summary>
     /// <param name="img"></param>
     /// <returns></returns>
-    private static List<PaddleOcrResultRegion> GetDetectResult(byte[] img)
+    private List<PaddleOcrResultRegion> GetDetectResult(byte[] img)
     {
         using var all = new PaddleOcrAll(LocalFullModels.ChineseV3, PaddleDevice.Mkldnn())
         {
@@ -34,10 +37,10 @@ public sealed class HoyoIDCardOcr : IHoyoIDCardOcr
         };
         using var src = Cv2.ImDecode(img, ImreadModes.AnyDepth);
         var result = all.Run(src);
-        Console.WriteLine("Detected all texts: \n" + result.Text);
+        logger.LogInformation("Detected all texts: \n{a}", result.Text);
         foreach (var region in result.Regions)
         {
-            Console.WriteLine($"Text: {region.Text}, Score: {region.Score}, RectCenter: {region.Rect.Center}, RectSize: {region.Rect.Size}, Angle: {region.Rect.Angle}");
+            logger.LogInformation("Text: {a}, Score: {b}, RectCenter: {c}, RectSize: {d}, Angle: {e}", region.Text, region.Score, region.Rect.Center, region.Rect.Size, region.Rect.Angle);
         }
         return result.Regions.ToList().FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.80f);
     }
