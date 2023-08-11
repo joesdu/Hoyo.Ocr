@@ -1,6 +1,8 @@
 ﻿using EasilyNET.Core.Enums;
 using EasilyNET.Core.IdCard;
 using EasilyNET.Core.Misc;
+using Hoyo.OcrServer.Abstraction;
+using Hoyo.OcrServer.Models;
 using Microsoft.Extensions.Logging;
 using OpenCvSharp;
 using Sdcb.PaddleInference;
@@ -13,13 +15,32 @@ using System.Text;
 namespace Hoyo.OcrServer;
 
 /// <inheritdoc />
-public sealed class HoyoIDCardOcr(ILogger<HoyoIDCardOcr> logger) : IHoyoIDCardOcr
+public sealed class HoyoIDCardOcr : IHoyoIDCardOcr
 {
-    /// <inheritdoc />
-    public PortraitInfo DetectPortraitInfo(byte[] img) => GetPortraitInfo(GetDetectResult(img));
+    private readonly ILogger<HoyoIDCardOcr> logger;
+    private readonly PaddleOcrAll poa;
+
+    /// <summary>
+    /// 构造函数
+    /// </summary>
+    /// <param name="logger"></param>
+    public HoyoIDCardOcr(ILogger<HoyoIDCardOcr> logger)
+    {
+        this.logger = logger;
+        poa = new(LocalFullModels.ChineseV3, PaddleDevice.Mkldnn())
+        {
+            // 允许识别有角度的文字
+            AllowRotateDetection = true,
+            // 允许识别旋转角度大于90度的文字
+            Enable180Classification = false
+        };
+    }
 
     /// <inheritdoc />
-    public EmblemInfo DetectEmblemInfo(byte[] img) => GetEmblemInfo(GetDetectResult(img));
+    public PortraitInfo PortraitInfo(byte[] img) => GetPortraitInfo(GetDetectResult(img));
+
+    /// <inheritdoc />
+    public EmblemInfo EmblemInfo(byte[] img) => GetEmblemInfo(GetDetectResult(img));
 
     /// <summary>
     /// 解析数据
@@ -28,15 +49,8 @@ public sealed class HoyoIDCardOcr(ILogger<HoyoIDCardOcr> logger) : IHoyoIDCardOc
     /// <returns></returns>
     private List<PaddleOcrResultRegion> GetDetectResult(byte[] img)
     {
-        using var all = new PaddleOcrAll(LocalFullModels.ChineseV3, PaddleDevice.Mkldnn())
-        {
-            // 允许识别有角度的文字
-            AllowRotateDetection = true,
-            // 允许识别旋转角度大于90度的文字
-            Enable180Classification = false
-        };
         using var src = Cv2.ImDecode(img, ImreadModes.AnyDepth);
-        var result = all.Run(src);
+        var result = poa.Run(src);
         logger.LogInformation("Detected all texts: \n{a}", result.Text);
         foreach (var region in result.Regions)
         {

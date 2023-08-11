@@ -1,4 +1,6 @@
-﻿namespace Hoyo.OcrServer;
+﻿using Hoyo.OcrServer.Models;
+
+namespace Hoyo.OcrServer.Abstraction;
 
 /// <summary>
 /// 身份证OCR
@@ -10,12 +12,12 @@ public interface IHoyoIDCardOcr
     /// </summary>
     /// <param name="img">图片数据</param>
     /// <returns></returns>
-    PortraitInfo? DetectPortraitInfo(byte[] img);
+    PortraitInfo? PortraitInfo(byte[] img);
 
     /// <summary>
     /// 识别国徽面信息
     /// </summary>
     /// <param name="img">图片数据</param>
     /// <returns></returns>
-    EmblemInfo? DetectEmblemInfo(byte[] img);
+    EmblemInfo? EmblemInfo(byte[] img);
 }

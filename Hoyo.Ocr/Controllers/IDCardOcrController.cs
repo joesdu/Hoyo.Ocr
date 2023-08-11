@@ -1,12 +1,12 @@
 using EasilyNET.Core.Misc;
-using Hoyo.OcrServer;
+using Hoyo.OcrServer.Abstraction;
+using Hoyo.OcrServer.Models;
 using Microsoft.AspNetCore.Mvc;
-using System.ComponentModel.DataAnnotations;
 
 namespace Hoyo.Ocr.Controllers;
 
 /// <inheritdoc />
-[ApiController, Route("[controller]")]
+[ApiController, Route("api/[controller]/[action]")]
 public class IDCardOcrController(IHoyoIDCardOcr ocr) : ControllerBase
 {
     /// <summary>
@@ -14,12 +14,12 @@ public class IDCardOcrController(IHoyoIDCardOcr ocr) : ControllerBase
     /// </summary>
     /// <param name="img">上传图片</param>
     /// <returns></returns>
-    [HttpPost("Portrait")]
-    public async Task<PortraitInfo?> Portrait([FromForm] IDCardImg img)
+    [HttpPost]
+    public async Task<PortraitInfo?> Portrait(IFormFile img)
     {
-        await using var stream = img.File?.OpenReadStream()!;
+        await using var stream = img.OpenReadStream();
         var bytes = await stream.ToArrayAsync();
-        return ocr.DetectPortraitInfo(bytes);
+        return ocr.PortraitInfo(bytes);
     }
 
     /// <summary>
@@ -27,23 +27,11 @@ public class IDCardOcrController(IHoyoIDCardOcr ocr) : ControllerBase
     /// </summary>
     /// <param name="img"></param>
     /// <returns></returns>
-    [HttpPost("Emblem")]
-    public async Task<EmblemInfo?> Emblem([FromForm] IDCardImg img)
+    [HttpPost]
+    public async Task<EmblemInfo?> Emblem(IFormFile img)
     {
-        await using var stream = img.File?.OpenReadStream()!;
+        await using var stream = img.OpenReadStream();
         var bytes = await stream.ToArrayAsync();
-        return ocr.DetectEmblemInfo(bytes);
+        return ocr.EmblemInfo(bytes);
     }
-}
-
-/// <summary>
-/// Img
-/// </summary>
-public class IDCardImg
-{
-    /// <summary>
-    /// 上传图片
-    /// </summary>
-    [Required]
-    public IFormFile? File { get; set; }
 }

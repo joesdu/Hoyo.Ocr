@@ -1,6 +1,7 @@
 ﻿using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
 using Hoyo.OcrServer;
+using Hoyo.OcrServer.Abstraction;
 
 namespace Hoyo.Ocr;
 

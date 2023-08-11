@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32519.111
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hoyo.Ocr", "Hoyo.Ocr\Hoyo.Ocr.csproj", "{F46C5B79-B96F-4EEC-8D92-D2ECFF390174}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hoyo.Ocr", "Hoyo.Ocr\Hoyo.Ocr.csproj", "{F46C5B79-B96F-4EEC-8D92-D2ECFF390174}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hoyo.OcrServer", "Hoyo.OcrServer\Hoyo.OcrServer.csproj", "{6A12B1EC-CE21-4EF3-8D86-5DD9B65555B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hoyo.OcrServer", "Hoyo.OcrServer\Hoyo.OcrServer.csproj", "{6A12B1EC-CE21-4EF3-8D86-5DD9B65555B8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

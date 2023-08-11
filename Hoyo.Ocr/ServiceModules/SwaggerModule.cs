@@ -19,7 +19,7 @@ public class SwaggerModule : AppModule
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-        _ = context.Services.AddSwaggerGen(c =>
+        context.Services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc(name, new()
             {
@@ -42,7 +42,7 @@ public class SwaggerModule : AppModule
     public override void ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationBuilder();
-        _ = app.UseSwagger().UseSwaggerUI(c =>
+        app.UseSwagger().UseSwaggerUI(c =>
         {
             c.SwaggerEndpoint($"/swagger/{name}/swagger.json", $"{title} {version}");
             c.EasilySwaggerUIOptions();
