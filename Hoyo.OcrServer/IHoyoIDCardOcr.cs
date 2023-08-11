@@ -8,14 +8,14 @@ public interface IHoyoIDCardOcr
     /// <summary>
     /// 识别人像面信息
     /// </summary>
-    /// <param name="base64">图片base64数据</param>
+    /// <param name="img">图片数据</param>
     /// <returns></returns>
-    PortraitInfo? DetectPortraitInfo(string base64);
+    PortraitInfo? DetectPortraitInfo(byte[] img);
 
     /// <summary>
     /// 识别国徽面信息
     /// </summary>
-    /// <param name="base64">图片base64数据</param>
+    /// <param name="img">图片数据</param>
     /// <returns></returns>
-    EmblemInfo? DetectEmblemInfo(string base64);
+    EmblemInfo? DetectEmblemInfo(byte[] img);
 }

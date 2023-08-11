@@ -17,10 +17,9 @@ public class IDCardOcrController(IHoyoIDCardOcr i_ocr) : ControllerBase
     [HttpPost("Portrait")]
     public async Task<PortraitInfo?> Portrait([FromForm] IDCardImg img)
     {
-        var stream = img.File?.OpenReadStream()!;
+        await using var stream = img.File?.OpenReadStream()!;
         var bytes = await stream.ToArrayAsync();
-        var base64 = Convert.ToBase64String(bytes);
-        return i_ocr.DetectPortraitInfo(base64);
+        return i_ocr.DetectPortraitInfo(bytes);
     }
 
     /// <summary>
@@ -31,10 +30,9 @@ public class IDCardOcrController(IHoyoIDCardOcr i_ocr) : ControllerBase
     [HttpPost("Emblem")]
     public async Task<EmblemInfo?> Emblem([FromForm] IDCardImg img)
     {
-        var stream = img.File?.OpenReadStream()!;
+        await using var stream = img.File?.OpenReadStream()!;
         var bytes = await stream.ToArrayAsync();
-        var base64 = Convert.ToBase64String(bytes);
-        return i_ocr.DetectEmblemInfo(base64);
+        return i_ocr.DetectEmblemInfo(bytes);
     }
 }
 

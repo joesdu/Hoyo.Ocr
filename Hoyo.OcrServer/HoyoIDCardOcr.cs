@@ -4,54 +4,42 @@ using EasilyNET.Core.Misc;
 using OpenCvSharp;
 using Sdcb.PaddleInference;
 using Sdcb.PaddleOCR;
-using Sdcb.PaddleOCR.Models;
-using Sdcb.PaddleOCR.Models.LocalV3;
+using Sdcb.PaddleOCR.Models.Local;
 using System.Text;
 
 namespace Hoyo.OcrServer;
 
 /// <inheritdoc />
-public class HoyoIDCardOcr : IHoyoIDCardOcr
+public sealed class HoyoIDCardOcr : IHoyoIDCardOcr
 {
-    private static readonly FullOcrModel model = LocalFullModels.ChineseV3;
+    /// <inheritdoc />
+    public PortraitInfo DetectPortraitInfo(byte[] img) => GetPortraitInfo(GetDetectResult(img));
 
-    /// <summary>
-    /// 获取人像面信息
-    /// </summary>
-    /// <param name="base64">图片二进制数据</param>
-    /// <returns></returns>
-    public PortraitInfo DetectPortraitInfo(string base64) => GetPortraitInfo(GetDetectResult(base64));
-
-    /// <summary>
-    /// 获取国徽面信息
-    /// </summary>
-    /// <param name="base64"></param>
-    /// <returns></returns>
-    public EmblemInfo DetectEmblemInfo(string base64) => GetEmblemInfo(GetDetectResult(base64));
+    /// <inheritdoc />
+    public EmblemInfo DetectEmblemInfo(byte[] img) => GetEmblemInfo(GetDetectResult(img));
 
     /// <summary>
     /// 解析数据
     /// </summary>
-    /// <param name="base64"></param>
+    /// <param name="img"></param>
     /// <returns></returns>
-    private static List<PaddleOcrResultRegion> GetDetectResult(string base64)
+    private static List<PaddleOcrResultRegion> GetDetectResult(byte[] img)
     {
-        var sampleImageData = base64.FromBase64();
-        using var all = new PaddleOcrAll(model, PaddleDevice.Mkldnn())
+        using var all = new PaddleOcrAll(LocalFullModels.ChineseV3, PaddleDevice.Mkldnn())
         {
-            AllowRotateDetection = true,    /* 允许识别有角度的文字 */
-            Enable180Classification = false /* 允许识别旋转角度大于90度的文字 */
+            // 允许识别有角度的文字
+            AllowRotateDetection = true,
+            // 允许识别旋转角度大于90度的文字
+            Enable180Classification = false
         };
-        using var src = Cv2.ImDecode(sampleImageData, ImreadModes.AnyDepth);
+        using var src = Cv2.ImDecode(img, ImreadModes.AnyDepth);
         var result = all.Run(src);
         Console.WriteLine("Detected all texts: \n" + result.Text);
         foreach (var region in result.Regions)
         {
             Console.WriteLine($"Text: {region.Text}, Score: {region.Score}, RectCenter: {region.Rect.Center}, RectSize: {region.Rect.Size}, Angle: {region.Rect.Angle}");
         }
-        var ocrResult = result.Regions.ToList();
-        var cells = ocrResult.FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.80f);
-        return cells;
+        return result.Regions.ToList().FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.80f);
     }
 
     /// <summary>
@@ -61,12 +49,6 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// <returns></returns>
     private static PortraitInfo GetPortraitInfo(List<PaddleOcrResultRegion> cells)
     {
-        var sb = new StringBuilder();
-        foreach (var cell in cells)
-        {
-            sb.Append(cell.Text);
-        }
-        Console.WriteLine(sb.ToString());
         var idno = Idno(cells);
         idno.CalculateBirthday(out DateOnly birthday);
         return new()
@@ -85,94 +67,25 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// </summary>
     /// <param name="cells"></param>
     /// <returns></returns>
-    private static EmblemInfo GetEmblemInfo(List<PaddleOcrResultRegion> cells) =>
-        new()
+    private static EmblemInfo GetEmblemInfo(IReadOnlyCollection<PaddleOcrResultRegion> cells)
+    {
+        // 在中国身份证应该一定是公安局发的,所以一定会有一个 局 字
+        var agency = cells.FirstOrDefault(c => c.Text.Contains('局')).Text;
+        // 身份证有效期使用 - 连接所以使用查找横线的方式来找到所需的区域
+        var times = cells.FirstOrDefault(c => c.Text.Contains('-')).Text.Trim().Split('-');
+        // 一定有开始日期,所以开始日期一定是正常的格式. 如: 2023.01.12
+        var start = times[0].Trim().Replace('.', '-');
+        start = start[^10..];
+        // 结束日期之所以不转化格式.是因为可能会存在 长期
+        var end = times[1].Trim();
+        if (end != "长期") end = end.Replace('.', '-')[^10..];
+        return new()
         {
-            Agency = Agency(cells),
-            ValidDateBegin = StartTime(cells),
-            ValidDateEnd = EndTime(cells)
+            Agency = agency,
+            ValidDateBegin = start,
+            ValidDateEnd = end
         };
-
-    #region 国徽面数据提取
-
-    /// <summary>
-    /// 获取签发机关
-    /// </summary>
-    /// <param name="cells"></param>
-    /// <returns></returns>
-    private static string Agency(List<PaddleOcrResultRegion> cells)
-    {
-        var begin = false;
-        var sb = new StringBuilder();
-        foreach (var item in cells)
-        {
-            if (item.Text.Contains("签发机关") && item.Text.Length > "签发机关".Length)
-            {
-                sb.Append(item.Text["签发机关".Length..]);
-                begin = true;
-                continue;
-            }
-            if (!string.IsNullOrWhiteSpace(item.Text) && item.Text.Contains("有效期")) break;
-            if (begin & !string.IsNullOrWhiteSpace(item.Text)) _ = sb.Append(item.Text);
-        }
-        return sb.ToString();
     }
-
-    /// <summary>
-    /// 获取有效期开始时间
-    /// </summary>
-    /// <param name="cells"></param>
-    /// <returns></returns>
-    private static string StartTime(List<PaddleOcrResultRegion> cells)
-    {
-        var begin = false;
-        var start = "";
-        foreach (var item in cells)
-        {
-            if (item.Text.Contains("有效期")) begin = true;
-            var temp = item.Text.Replace(".", "");
-            var s = temp.IndexOf("-", StringComparison.Ordinal) - 8;
-            if (s < 0) continue;
-            if (!(begin & !string.IsNullOrWhiteSpace(item.Text))) continue;
-            start = temp.Substring(s, 8);
-            if (start.IsNumber()) start = start.ToDateTime(true)?.ToString("yyyy-MM-dd")!;
-            break;
-        }
-        return start;
-    }
-
-    /// <summary>
-    /// 获取有效期结束时间
-    /// </summary>
-    /// <param name="cells"></param>
-    /// <returns></returns>
-    private static string EndTime(List<PaddleOcrResultRegion> cells)
-    {
-        var begin = false;
-        var end = "";
-        foreach (var item in cells)
-        {
-            if (item.Text.Contains("有效期")) begin = true;
-            var temp = item.Text.Replace(".", "");
-            var s = temp.IndexOf("-", StringComparison.Ordinal);
-            if (s < 0) continue;
-            if (!(begin & !string.IsNullOrWhiteSpace(item.Text))) continue;
-            end = temp[(s + 1)..];
-            if (end.StartsWith("长期"))
-            {
-                end = "长期";
-            }
-            else if (end.IsNumber())
-            {
-                end = end[..8];
-                return end.ToDateTime(true)?.ToString("yyyy-MM-dd")!;
-            }
-            break;
-        }
-        return end;
-    }
-
-    #endregion
 
     #region 人像面数据提取
 
@@ -217,7 +130,7 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
             var nation = item.Text[s..];
             result = nation is "穿青人" or "其他" or "外国血统中国籍人士"
                          ? (ENation)Enum.Parse(typeof(ENation), nation)
-                         : (ENation)Enum.Parse(typeof(ENation), nation + "族");
+                         : (ENation)Enum.Parse(typeof(ENation), $"{nation}族");
             break;
         }
         return result;
@@ -253,11 +166,11 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
             if (item.Text.Contains("公民身份号码") && item.Text.Length > "公民身份号码".Length)
             {
                 idno = item.Text["公民身份号码".Length..];
+                break;
             }
-            if (item.Text.Length is 15 or 18)
-            {
-                idno = item.Text;
-            }
+            if (item.Text.Length is not (15 or 18)) continue;
+            idno = item.Text;
+            break;
         }
         _ = idno.CheckIDCard();
         return idno;

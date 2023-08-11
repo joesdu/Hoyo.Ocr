@@ -36,6 +36,7 @@ public class AppWebModule : AppModule
         });
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         context.Services.AddEndpointsApiExplorer();
+        context.Services.AddHttpContextAccessor();
         base.ConfigureServices(context);
     }
 
