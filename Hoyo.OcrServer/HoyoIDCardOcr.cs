@@ -1,33 +1,19 @@
 ﻿using EasilyNET.Core.Enums;
 using EasilyNET.Core.IdCard;
 using EasilyNET.Core.Misc;
-using PaddleOCRSharp;
+using OpenCvSharp;
+using Sdcb.PaddleInference;
+using Sdcb.PaddleOCR;
+using Sdcb.PaddleOCR.Models;
+using Sdcb.PaddleOCR.Models.LocalV3;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Hoyo.OcrServer;
 
+/// <inheritdoc />
 public class HoyoIDCardOcr : IHoyoIDCardOcr
 {
-    //OCR参数
-    private static readonly OCRParameter oCRParameter = new()
-    {
-        cls = true,
-        use_angle_cls = true,
-        det_db_score_mode = true
-    };
-
-    //private static readonly string root = $@"{Environment.CurrentDirectory}\inference";
-
-    //private static readonly PaddleOCREngine engine = new(new()
-    //{
-    //    det_infer = $@"{root}\ch_PP-OCRv3_det_infer",
-    //    cls_infer = $@"{root}\ch_ppocr_mobile_v2.0_cls_infer",
-    //    rec_infer = $@"{root}\ch_PP-OCRv3_rec_infer",
-    //    keys = $@"{root}\ppocr_keys.txt"
-    //}, oCRParameter);
-
-    private static readonly PaddleOCREngine engine = new(null, oCRParameter);
+    private static readonly FullOcrModel model = LocalFullModels.ChineseV3;
 
     /// <summary>
     /// 获取人像面信息
@@ -48,14 +34,23 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// </summary>
     /// <param name="base64"></param>
     /// <returns></returns>
-    private static List<TextBlock> GetDetectResult(string base64)
+    private static List<PaddleOcrResultRegion> GetDetectResult(string base64)
     {
-        var ocrResult = engine.DetectTextBase64(base64);
-        var cells = ocrResult.TextBlocks.FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.80f);
-        foreach (var cell in cells)
+        var sampleImageData = base64.FromBase64();
+        using var all = new PaddleOcrAll(model, PaddleDevice.Mkldnn())
         {
-            cell.Text = Regex.Replace(cell.Text, @"\s", string.Empty);
+            AllowRotateDetection = true,    /* 允许识别有角度的文字 */
+            Enable180Classification = false /* 允许识别旋转角度大于90度的文字 */
+        };
+        using var src = Cv2.ImDecode(sampleImageData, ImreadModes.AnyDepth);
+        var result = all.Run(src);
+        Console.WriteLine("Detected all texts: \n" + result.Text);
+        foreach (var region in result.Regions)
+        {
+            Console.WriteLine($"Text: {region.Text}, Score: {region.Score}, RectCenter: {region.Rect.Center}, RectSize: {region.Rect.Size}, Angle: {region.Rect.Angle}");
         }
+        var ocrResult = result.Regions.ToList();
+        var cells = ocrResult.FindAll(c => !string.IsNullOrWhiteSpace(c.Text) && c.Score >= 0.80f);
         return cells;
     }
 
@@ -64,7 +59,7 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// </summary>
     /// <param name="cells"></param>
     /// <returns></returns>
-    private static PortraitInfo GetPortraitInfo(List<TextBlock> cells)
+    private static PortraitInfo GetPortraitInfo(List<PaddleOcrResultRegion> cells)
     {
         var sb = new StringBuilder();
         foreach (var cell in cells)
@@ -90,7 +85,7 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// </summary>
     /// <param name="cells"></param>
     /// <returns></returns>
-    private static EmblemInfo GetEmblemInfo(List<TextBlock> cells) =>
+    private static EmblemInfo GetEmblemInfo(List<PaddleOcrResultRegion> cells) =>
         new()
         {
             Agency = Agency(cells),
@@ -105,7 +100,7 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// </summary>
     /// <param name="cells"></param>
     /// <returns></returns>
-    private static string Agency(List<TextBlock> cells)
+    private static string Agency(List<PaddleOcrResultRegion> cells)
     {
         var begin = false;
         var sb = new StringBuilder();
@@ -128,7 +123,7 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// </summary>
     /// <param name="cells"></param>
     /// <returns></returns>
-    private static string StartTime(List<TextBlock> cells)
+    private static string StartTime(List<PaddleOcrResultRegion> cells)
     {
         var begin = false;
         var start = "";
@@ -151,7 +146,7 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// </summary>
     /// <param name="cells"></param>
     /// <returns></returns>
-    private static string EndTime(List<TextBlock> cells)
+    private static string EndTime(List<PaddleOcrResultRegion> cells)
     {
         var begin = false;
         var end = "";
@@ -187,7 +182,7 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// <param name="cells"></param>
     /// <param name="idno"></param>
     /// <returns></returns>
-    private static string Address(List<TextBlock> cells, string idno)
+    private static string Address(List<PaddleOcrResultRegion> cells, string idno)
     {
         var begin = false;
         var sb = new StringBuilder();
@@ -210,7 +205,7 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// </summary>
     /// <param name="cells"></param>
     /// <returns></returns>
-    private static ENation Nation(List<TextBlock> cells)
+    private static ENation Nation(List<PaddleOcrResultRegion> cells)
     {
         var begin = false;
         var result = ENation.其他;
@@ -233,7 +228,7 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// </summary>
     /// <param name="cells"></param>
     /// <returns></returns>
-    private static string Name(List<TextBlock> cells)
+    private static string Name(List<PaddleOcrResultRegion> cells)
     {
         var begin = false;
         foreach (var item in cells)
@@ -249,7 +244,7 @@ public class HoyoIDCardOcr : IHoyoIDCardOcr
     /// </summary>
     /// <param name="cells"></param>
     /// <returns></returns>
-    private static string Idno(List<TextBlock> cells)
+    private static string Idno(List<PaddleOcrResultRegion> cells)
     {
         var idno = "";
         foreach (var item in cells)

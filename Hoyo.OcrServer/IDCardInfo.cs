@@ -2,7 +2,9 @@
 
 namespace Hoyo.OcrServer;
 
-// ReSharper disable once ClassNeverInstantiated.Global
+/// <summary>
+/// 人像面信息
+/// </summary>
 public class PortraitInfo
 {
     /// <summary>
@@ -36,6 +38,9 @@ public class PortraitInfo
     public string IdNumber { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// 国徽面信息
+/// </summary>
 public class EmblemInfo
 {
     /// <summary>

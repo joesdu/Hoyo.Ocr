@@ -5,11 +5,16 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EasilyNET.Core" Version="1.7.8" />
-    <PackageReference Include="PaddleOCRSharp" Version="4.0.0" />
+    <PackageReference Include="EasilyNET.Core" Version="1.7.9" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.8.0.20230708" />
+    <PackageReference Include="Sdcb.PaddleInference.runtime.win64.mkl" Version="2.5.0" />
+    <PackageReference Include="Sdcb.PaddleOCR" Version="2.6.0.5" />
+    <PackageReference Include="Sdcb.PaddleOCR.Models.LocalV3" Version="2.6.0.5" />
   </ItemGroup>
 
 </Project>

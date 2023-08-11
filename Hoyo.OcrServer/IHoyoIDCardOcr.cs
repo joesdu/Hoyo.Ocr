@@ -1,5 +1,8 @@
 ﻿namespace Hoyo.OcrServer;
 
+/// <summary>
+/// 身份证OCR
+/// </summary>
 public interface IHoyoIDCardOcr
 {
     /// <summary>

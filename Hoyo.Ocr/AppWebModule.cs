@@ -18,6 +18,7 @@ namespace Hoyo.Ocr;
     typeof(OcrServerModule))]
 public class AppWebModule : AppModule
 {
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         context.Services.AddControllers(c =>
@@ -38,6 +39,7 @@ public class AppWebModule : AppModule
         base.ConfigureServices(context);
     }
 
+    /// <inheritdoc />
     public override void ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationBuilder();

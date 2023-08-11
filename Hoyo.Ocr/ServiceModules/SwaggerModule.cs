@@ -4,6 +4,7 @@ using Microsoft.OpenApi.Models;
 
 namespace Hoyo.Ocr;
 
+/// <inheritdoc />
 public class SwaggerModule : AppModule
 {
     /**
@@ -14,6 +15,7 @@ public class SwaggerModule : AppModule
     private const string title = "Ocr.Api";
     private const string version = "v1";
 
+    /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -36,6 +38,7 @@ public class SwaggerModule : AppModule
         });
     }
 
+    /// <inheritdoc />
     public override void ApplicationInitialization(ApplicationContext context)
     {
         var app = context.GetApplicationBuilder();
