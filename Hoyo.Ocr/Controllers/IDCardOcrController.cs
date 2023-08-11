@@ -7,7 +7,7 @@ namespace Hoyo.Ocr.Controllers;
 
 /// <inheritdoc />
 [ApiController, Route("[controller]")]
-public class IDCardOcrController(IHoyoIDCardOcr i_ocr) : ControllerBase
+public class IDCardOcrController(IHoyoIDCardOcr ocr) : ControllerBase
 {
     /// <summary>
     /// 获取人像面信息
@@ -19,7 +19,7 @@ public class IDCardOcrController(IHoyoIDCardOcr i_ocr) : ControllerBase
     {
         await using var stream = img.File?.OpenReadStream()!;
         var bytes = await stream.ToArrayAsync();
-        return i_ocr.DetectPortraitInfo(bytes);
+        return ocr.DetectPortraitInfo(bytes);
     }
 
     /// <summary>
@@ -32,7 +32,7 @@ public class IDCardOcrController(IHoyoIDCardOcr i_ocr) : ControllerBase
     {
         await using var stream = img.File?.OpenReadStream()!;
         var bytes = await stream.ToArrayAsync();
-        return i_ocr.DetectEmblemInfo(bytes);
+        return ocr.DetectEmblemInfo(bytes);
     }
 }
 
