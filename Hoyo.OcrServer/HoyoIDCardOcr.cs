@@ -87,21 +87,58 @@ public sealed class HoyoIDCardOcr : IHoyoIDCardOcr
     private static EmblemInfo GetEmblemInfo(IReadOnlyCollection<PaddleOcrResultRegion> cells)
     {
         // 在中国身份证应该一定是公安局发的,所以一定会有一个 局 字
-        var agency = cells.FirstOrDefault(c => c.Text.Contains('局')).Text;
+        var agency_cell = cells.FirstOrDefault(c => c.Text.Contains('局'));
         // 身份证有效期使用 - 连接所以使用查找横线的方式来找到所需的区域
-        var times = cells.FirstOrDefault(c => c.Text.Contains('-')).Text.Trim().Split('-');
-        // 一定有开始日期,所以开始日期一定是正常的格式. 如: 2023.01.12
-        var start = times[0].Trim().Replace('.', '-');
-        start = start[^10..];
-        // 结束日期之所以不转化格式.是因为可能会存在 长期
-        var end = times[1].Trim();
-        if (end != "长期") end = end.Replace('.', '-')[^10..];
+        var times = cells.FirstOrDefault(c => c.Text.Contains('-'));
+        var validDate = GetValidDate(times);
         return new()
         {
-            Agency = agency,
-            ValidDateBegin = start,
-            ValidDateEnd = end
+            Agency = GetAgency(agency_cell),
+            ValidDateBegin = validDate.Item1,
+            ValidDateEnd = validDate.Item2
         };
+    }
+
+    /// <summary>
+    /// 签发机关信息
+    /// </summary>
+    /// <param name="cell"></param>
+    /// <returns></returns>
+    private static string GetAgency(PaddleOcrResultRegion cell)
+    {
+        var agency = cell.Text.RemoveWhiteSpace();
+        var result = "";
+        if (agency.StartsWith("签发机关"))
+        {
+            result = agency["签发机关".Length..];
+        }
+        if (agency.EndsWith("签发机关"))
+        {
+            result = agency.Substring(agency.Length - "签发机关".Length - 1, "签发机关".Length);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// 处理有效期
+    /// </summary>
+    /// <param name="cell"></param>
+    /// <returns></returns>
+    private static (string, string) GetValidDate(PaddleOcrResultRegion cell)
+    {
+        //    有效期限 2016. 10. 27 - 2021. 10. 27
+        var times = cell.Text.RemoveWhiteSpace().Split('-');
+        // 一定有开始日期,所以开始日期一定是正常的格式. 如: 2023.01.12
+        var start = times[0].Replace('.', '-');
+        if (start.StartsWith("有效日期"))
+        {
+            start = start[.."有效日期".Length];
+        }
+        start = start[^10..];
+        // 结束日期之所以不转化格式.是因为可能会存在 长期
+        var end = times[1];
+        if (end != "长期") end = end.Replace('.', '-')[^10..];
+        return (start, end);
     }
 
     #region 人像面数据提取
