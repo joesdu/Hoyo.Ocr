@@ -107,16 +107,15 @@ public sealed class HoyoIDCardOcr : IHoyoIDCardOcr
     private static string GetAgency(PaddleOcrResultRegion cell)
     {
         var agency = cell.Text.RemoveWhiteSpace();
-        var result = "";
         if (agency.StartsWith("签发机关"))
         {
-            result = agency["签发机关".Length..];
+            agency = agency["签发机关".Length..];
         }
         if (agency.EndsWith("签发机关"))
         {
-            result = agency.Substring(agency.Length - "签发机关".Length - 1, "签发机关".Length);
+            agency = agency.Substring(agency.Length - "签发机关".Length - 1, "签发机关".Length);
         }
-        return result;
+        return agency;
     }
 
     /// <summary>
