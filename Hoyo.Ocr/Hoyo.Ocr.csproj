@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
@@ -10,7 +10,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="EasilyNET.AutoDependencyInjection" Version="1.8.5" />
+		<PackageReference Include="EasilyNET.AutoDependencyInjection" Version="1.8.6" />
 		<PackageReference Include="EasilyNET.WebCore" Version="1.8.5" />
 		<PackageReference Include="EasilyNET.WebCore.Swagger" Version="1.8.5" />
 		<PackageReference Include="Serilog.AspNetCore" Version="7.0.0" />
