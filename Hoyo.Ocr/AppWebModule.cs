@@ -1,7 +1,6 @@
 ﻿using EasilyNET.AutoDependencyInjection.Attributes;
 using EasilyNET.AutoDependencyInjection.Contexts;
 using EasilyNET.AutoDependencyInjection.Modules;
-using EasilyNET.WebCore.Filters;
 using EasilyNET.WebCore.JsonConverters;
 using System.Text.Json.Serialization;
 
@@ -21,11 +20,7 @@ public class AppWebModule : AppModule
     /// <inheritdoc />
     public override void ConfigureServices(ConfigureServicesContext context)
     {
-        context.Services.AddControllers(c =>
-        {
-            _ = c.Filters.Add<ActionExecuteFilter>();
-            _ = c.Filters.Add<ExceptionFilter>();
-        }).AddJsonOptions(c =>
+        context.Services.AddControllers().AddJsonOptions(c =>
         {
             c.JsonSerializerOptions.Converters.Add(new TimeOnlyJsonConverter());
             c.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
