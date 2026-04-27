@@ -10,7 +10,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="EasilyNET.AutoDependencyInjection" Version="2.2.72" />
+		<PackageReference Include="EasilyNET.AutoDependencyInjection" Version="6.26.201.257" />
 		<PackageReference Include="EasilyNET.WebCore" Version="2.2.72" />
 		<PackageReference Include="EasilyNET.WebCore.Swagger" Version="2.2.72" />
 		<PackageReference Include="Serilog.AspNetCore" Version="8.0.2-dev-00338" />
